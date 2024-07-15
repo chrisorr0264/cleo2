@@ -1,19 +1,9 @@
-import os
-import re
+from utilities import Utilities
 
-def find_imports(directory):
-    imports = set()
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.py'):
-                with open(os.path.join(root, file), 'r') as f:
-                    for line in f:
-                        match = re.match(r'^\s*(import|from)\s+(\S+)', line)
-                        if match:
-                            imports.add(line.strip())
-    return imports
+util = Utilities()
 
-project_dir = 'C://Coding//cleo2'
-imports = find_imports(project_dir)
-for imp in sorted(imports):
-    print(imp)
+file_path = 'M:\\Images.old\\2016-05-27-0012374.jpg'
+
+metadata = util.get_image_metadata_from_file(file_path)
+
+print(metadata)

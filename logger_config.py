@@ -4,6 +4,7 @@ A logging utility for the cleo2 project.
 '''
 
 import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 import os
 from settings import *
@@ -60,8 +61,8 @@ def setup_logging(text_widget=None):
     file_formatter = ClassNameFormatter('%(asctime)s:%(levelname)s:%(name)s:%(class_name)s:%(function_name)s:%(message)s')
     console_formatter = AnsiColorFormatter('%(asctime)s:%(levelname)s:%(name)s:%(class_name)s:%(function_name)s:%(message)s')
         
-    # Set up file handler
-    file_handler = logging.FileHandler(log_filepath, mode='w')
+    # Set up file handler with rotation
+    file_handler = RotatingFileHandler(log_filepath, maxBytes=5*1024*1024, backupCount=10)  # 5MB max file size, keep 10 backups
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.getLevelName(FILE_DEBUG_LEVEL))  # Log messages to the file based on the FILE_DEBUG_LEVEL parameter
 
@@ -71,9 +72,8 @@ def setup_logging(text_widget=None):
     console_handler.setLevel(logging.getLevelName(CONSOLE_DEBUG_LEVEL))  # Log messages to the console based on the  CONSOLE_DEBUG_LEVEL parameter
 
     logger = logging.getLogger('main')
-    logger.setLevel(DETAIL_LEVEL_NUM)  # Use the numeric value of DETAIL level
 
-    # Remove existing handlers
+    # Clear existing handlers if any
     if logger.hasHandlers():
         logger.handlers.clear()
 
@@ -81,4 +81,7 @@ def setup_logging(text_widget=None):
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
+    logger.setLevel(DETAIL_LEVEL_NUM)  # Use the numeric value of DETAIL level
+
     return logger
+
