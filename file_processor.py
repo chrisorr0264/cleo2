@@ -95,9 +95,16 @@ class FileProcessor:
         self.logger.debug(f"Duplicates found for {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
         original_filename = Path(file).stem
-        duplicate_of = Path(duplicates[0][0]).stem
-        mse = duplicates[0][1]
+        print(f"Original Filename: {original_filename}")
 
+        # Normalize the duplicate path to use Unix-style separators
+        duplicate_path = duplicates[0][0].replace('\\','/')
+        duplicate_of = Path(duplicate_path).stem
+        
+        print(f"Duplicate filename (stem): {duplicate_of}")
+
+        mse = duplicates[0][1]
+        print(f"MSE: {mse}")
 
         if Path(file).suffix.lower() in ['.mp4', '.mov', '.avi', '.mkv']:
             fn = f"{original_filename}-DUP_OF_{duplicate_of}{Path(file).suffix}"
