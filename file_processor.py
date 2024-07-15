@@ -97,7 +97,13 @@ class FileProcessor:
         original_filename = Path(file).stem
         duplicate_of = Path(duplicates[0][0]).name
         mse = duplicates[0][1]
-        fn = f"{original_filename}-DUP_OF_{duplicate_of} (mse-{mse}){Path(file).suffix}"
+
+
+        if Path(file).suffix.lower() in ['.mp4', '.mov', '.avi', '.mkv']:
+            fn = f"{original_filename}-DUP_OF_{duplicate_of}{Path(file).suffix}"
+        else:
+            fn = f"{original_filename}-DUP_OF_{duplicate_of} (mse-{mse}){Path(file).suffix}"
+
 
         self.logger.debug(f"File: {fn} is a duplicate and is moved to the duplicates folder.", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         updated_file = os.path.join(self.duplicates_folder, fn)
