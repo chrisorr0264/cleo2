@@ -95,7 +95,7 @@ class FileProcessor:
         self.logger.debug(f"Duplicates found for {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
         original_filename = Path(file).stem
-        duplicate_of = Path(duplicates[0][0]).name
+        duplicate_of = Path(duplicates[0][0]).stem
         mse = duplicates[0][1]
 
 
