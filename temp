@@ -1,9 +1,0 @@
-from utilities import Utilities
-
-util = Utilities()
-
-file_path = 'M:\\Images.old\\2016-05-27-0012374.jpg'
-
-metadata = util.get_image_metadata_from_file(file_path)
-
-print(metadata)

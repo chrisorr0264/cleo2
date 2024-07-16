@@ -1,6 +1,0 @@
-SUCCESS: 2019-09-17-0008740.jpg converted from HEIC to JPEG. Path: 'M:\Images\2019-09-17-0008740.jpg'
-SUCCESS: 2019-09-17-0008750.jpg converted from HEIC to JPEG. Path: 'M:\Images\2019-09-17-0008750.jpg'
-SUCCESS: 2019-09-20-0008910.jpg converted from HEIC to JPEG. Path: 'M:\Images\2019-09-20-0008910.jpg'
-SUCCESS: 2019-09-20-0008913.jpg converted from HEIC to JPEG. Path: 'M:\Images\2019-09-20-0008913.jpg'
-SUCCESS: 2019-09-22-0009053.jpg converted from HEIC to JPEG. Path: 'M:\Images\2019-09-22-0009053.jpg'
-FAILURE: 2019-10-20-0010768.jpg cannot be opened. File is empty or corrupted. Path: 'M:\Images\2019-10-20-0010768.jpg'
