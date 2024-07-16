@@ -10,21 +10,15 @@ WORKDIR /usr/src/app
 # Install necessary apt packages
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libssl-dev \
-    libffi-dev \
     python3-dev \
     cmake \
-    libopencv-dev \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    ffmpeg \
-    libpq-dev \
-    libmagickwand-dev \
     libboost-all-dev \
-    libgeos-dev \
-    wget \
-    git \
+    libopencv-dev \
+    python3-opencv \
+    ffmpeg \
+    imagemagick \
+    libmagickwand-dev \
+    exiftool \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
