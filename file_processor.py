@@ -24,6 +24,7 @@ class FileProcessor:
 
     def initialize_variables(self, file):
         self.file_to_process, self.file_type_to_process = file
+        
         self.image_folder = IMAGE_DIRECTORY
         self.movies_folder = MOVIES_DIRECTORY
         self.duplicates_folder = DUPLICATE_DIRECTORY

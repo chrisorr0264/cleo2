@@ -43,8 +43,6 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Define environment variables if needed
-ENV NAME World
 
 # Run the Python script when the container launches
-CMD ["python", "process_file.py"]
+ENTRYPOINT ["python", "-c", "from file_processor import FileProcessor; import os; file_info = tuple(os.getenv('NEW_FILE').split(',')); FileProcessor(file_info)"]

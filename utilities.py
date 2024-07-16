@@ -27,6 +27,7 @@ from wand.exceptions import WandException
 import cv2
 import subprocess
 import json
+import pwd
 
 
 class Utilities:
@@ -555,11 +556,11 @@ class Utilities:
         function_name = 'get_logged_in_user'
 
         try:
-            logged_in_user=os.getlogin()
+            logged_in_user = pwd.getpwuid(os.geteuid()).pw_name
             return logged_in_user
         except Exception as e:
-            self.logger.error(f"Error getting logged in user: {e}", extra = {'class_name': self.__class__.__name__, 'function_name': function_name})
-        return 'Unknown User'
+            self.logger.error(f"Error getting logged in user: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            return 'Unknown User'
     
     def get_new_file_name(self, file_create_date, myID):
         function_name = 'get_new_file_name'
