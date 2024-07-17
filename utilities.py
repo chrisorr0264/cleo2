@@ -28,6 +28,7 @@ import cv2
 import subprocess
 import json
 import pwd
+import shutil
 
 
 class Utilities:
@@ -53,36 +54,35 @@ class Utilities:
             return [], []
 
         valid_files_all = []
-        skipped_files_all = np.array([])
+        skipped_files_all = []
 
         valid_files, skip_files = self.validate_files(files)
-        valid_files_all.append(valid_files)
-        skipped_files_all = np.concatenate((skipped_files_all, skip_files), axis=None)
+        valid_files_all.extend(valid_files)
+        skipped_files_all.extend(skip_files)
 
         duration = time() - start_time
         self.logger.debug(f"Retrieved new files: {valid_files_all}, skipped files: {skipped_files_all}. Time taken: {duration:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         return valid_files_all, skipped_files_all
 
-    def validate_files(self, directory): 
+    def validate_files(self, files):
         function_name = 'validate_files'
         start_time = time()
-        self.logger.debug(f"Validating files in directory: {directory}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        valid_files = np.array([os.path.normpath(file) for file in directory if not os.path.isdir(file)])        
-        valid_files, skip_files = self.filter_extensions(valid_files)
+        self.logger.debug(f"Validating files: {files}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        valid_files, skip_files = self.filter_extensions(files)
         duration = time() - start_time
-        self.logger.detail(f"Validated files: {valid_files}, skipped files: {skip_files}. Time taken: {duration:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        self.logger.debug(f"Validated files: {valid_files}, skipped files: {skip_files}. Time taken: {duration:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         return valid_files, skip_files
 
-    def filter_extensions(self, directory_files):
+    def filter_extensions(self, files):
         function_name = 'filter_extensions'
         start_time = time()
-        self.logger.debug(f"Filtering files by extension: {directory_files}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        valid_image_extensions = np.array(IMAGE_EXTENSIONS)
-        valid_movie_extensions = np.array(MOVIE_EXTENSIONS)
+        self.logger.debug(f"Filtering files by extension: {files}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        valid_image_extensions = set(IMAGE_EXTENSIONS)
+        valid_movie_extensions = set(MOVIE_EXTENSIONS)
         keep_files = []
         skip_files = []
 
-        for file in directory_files:
+        for file in files:
             try:
                 ext = file.split(".")[-1].lower()
                 if ext in valid_image_extensions:
@@ -94,10 +94,21 @@ class Utilities:
 
             except Exception as e:
                 self.logger.error(f"Error processing file {file}: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                skip_files.append(file)
 
         duration = time() - start_time
-        self.logger.detail(f"Filtered files: {keep_files}, skipped files: {skip_files}. Time taken: {duration:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        self.logger.debug(f"Filtered files: {keep_files}, skipped files: {skip_files}. Time taken: {duration:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         return keep_files, skip_files
+
+    def move_to_error_directory(self, file):
+        function_name = 'move_to_error_directory'
+        try:
+            if not os.path.exists(ERROR_DIRECTORY):
+                os.makedirs(ERROR_DIRECTORY)
+            shutil.move(file, os.path.join(ERROR_DIRECTORY, os.path.basename(file)))
+            self.logger.info(f"Moved file {file} to error directory", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        except Exception as e:
+            self.logger.error(f"Error moving file {file} to error directory: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
     def generate_tensor(self, file):
         function_name = 'generate_tensor'

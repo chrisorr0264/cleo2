@@ -14,6 +14,15 @@ class FileProcessor:
 
         self.initialize_variables(file)
 
+        try:
+            self.process_file()
+        except Exception as e:
+            self.logger.error(f"Error processing file {self.file_to_process}: {e}")
+            self.utils.move_to_error_directory(self.file_to_process)
+
+    def process_file(self):
+        
+
         if self.file_type_to_process == 'movie':
             self.process_movie()
         elif self.file_type_to_process == 'image':
