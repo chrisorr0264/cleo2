@@ -4,13 +4,13 @@ from pathlib import Path
 from facelabeler import FaceLabeler
 from settings import *
 from utilities import Utilities
-from dbconnection import get_connection, return_connection, close_pool
 from logger_config import setup_logging, get_logger
 
 class FileProcessor:
     def __init__(self, file):
         setup_logging()
         self.logger = get_logger('main')
+
 
         self.initialize_variables(file)
 
@@ -24,7 +24,7 @@ class FileProcessor:
 
     def initialize_variables(self, file):
         self.file_to_process, self.file_type_to_process = file
-        
+
         self.image_folder = IMAGE_DIRECTORY
         self.movies_folder = MOVIES_DIRECTORY
         self.duplicates_folder = DUPLICATE_DIRECTORY

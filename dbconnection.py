@@ -1,51 +1,69 @@
 import psycopg2
-from psycopg2 import pool, sql
-from settings import *
-from logger_config import get_logger
+from psycopg2 import pool
+import os
+import logging
+from dotenv import load_dotenv
 
-# Initialize logger
-logger = get_logger(__name__)
+logger = logging.getLogger('main.dbconnection')
 
-# Database connection parameters
-db_params = {
-    'dbname': DB_NAME,
-    'user': DB_USERNAME,
-    'password': DB_PASSWORD,
-    'host': DB_SERVER,
-    'port': DB_PORT       
-}
+load_dotenv()
 
-try:
-    # Create a connection pool
-    db_pool = psycopg2.pool.SimpleConnectionPool(1, 20, **db_params)
+class DBConnection:
+    _instance = None
+    db_pool = None
 
-    if db_pool:
-        logger.detail("Connection pool created successfully", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
-except Exception as e:
-    logger.error(f"Error while connecting to PostgreSQL: {e}", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
+    @staticmethod
+    def get_instance():
+        if DBConnection._instance is None:
+            DBConnection()
+        return DBConnection._instance
 
-# Function to get a connection from the pool
-def get_connection():
-    try:
-        conn = db_pool.getconn()
-        if conn:
-            logger.detail("Successfully received a connection from the connection pool", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
-            return conn
-    except Exception as e:
-        logger.error(f"Error while getting connection: {e}", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
+    def __init__(self):
+        if DBConnection._instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            DBConnection._instance = self
+            self.initialize_pool()
 
-# Function to return a connection to the pool
-def return_connection(conn):
-    try:
-        db_pool.putconn(conn)
-        logger.detail("Connection returned to the pool successfully", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
-    except Exception as e:
-        logger.error(f"Error while returning connection: {e}", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
+    def initialize_pool(self):
+        try:
+            self.db_pool = pool.SimpleConnectionPool(
+                1,  # minconn
+                20, # maxconn
+                user=os.getenv('DB_USERNAME'),
+                password=os.getenv('DB_PASSWORD'),
+                host=os.getenv('DB_SERVER'),
+                port=os.getenv('DB_PORT'),
+                database=os.getenv('DB_NAME')
+            )
+            if self.db_pool:
+                logger.info("Connection pool created successfully")
+        except (Exception, psycopg2.DatabaseError) as error:
+            logger.error(f"Error while connecting to PostgreSQL: {error}")
 
-# Function to close all pool connections
-def close_pool():
-    try:
-        db_pool.closeall()
-        logger.detail("Connection pool closed successfully", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
-    except Exception as e:
-        logger.error(f"Error while closing connection pool: {e}", extra={'class_name': 'dbconnection', 'function_name': 'dbconnection'})
+    def get_connection(self):
+        try:
+            if self.db_pool:
+                connection = self.db_pool.getconn()
+                if connection:
+                    logger.debug("Successfully received a connection from the connection pool")
+                    return connection
+        except (Exception, psycopg2.DatabaseError) as error:
+            logger.error(f"Error while getting connection: {error}")
+        return None
+
+    def return_connection(self, connection):
+        try:
+            if self.db_pool:
+                self.db_pool.putconn(connection)
+                logger.debug("Connection returned to the pool successfully")
+        except (Exception, psycopg2.DatabaseError) as error:
+            logger.error(f"Error while returning connection: {error}")
+
+    def close_pool(self):
+        try:
+            if self.db_pool:
+                self.db_pool.closeall()
+                logger.info("Connection pool closed successfully")
+        except (Exception, psycopg2.DatabaseError) as error:
+            logger.error(f"Error while closing connection pool: {error}")

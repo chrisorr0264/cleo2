@@ -6,7 +6,7 @@ A face recognition utility used throughout the cleo2 project.
 from PIL import UnidentifiedImageError
 import face_recognition
 import numpy as np
-from dbconnection import get_connection, return_connection
+from dbconnection import DBConnection
 from logger_config import get_logger
 import time
 from utilities import Utilities
@@ -15,6 +15,7 @@ from utilities import Utilities
 class FaceLabeler:
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
+        self.db_conn_instance = DBConnection.get_instance()
         self.known_face_encodings = []
         self.known_face_names = []
         self.util = Utilities()
@@ -24,7 +25,7 @@ class FaceLabeler:
     def _load_known_faces_from_db(self):
         function_name = 'load_known_faces_from_db'
         self.logger.info("Loading known faces from database", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        conn = get_connection()
+        conn = self.db_conn_instance.get_connection()
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT name, encoding FROM tbl_known_faces")
@@ -37,12 +38,12 @@ class FaceLabeler:
         except Exception as e:
             self.logger.error(f"Error loading known faces from database: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         finally:
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def add_known_faces(self, names_encodings):
         function_name = 'add_known_faces'
         self.logger.info("Adding known faces to database", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        conn = get_connection()
+        conn = self.db_conn_instance.get_connection()
         try:
             cursor = conn.cursor()
             cursor.executemany(
@@ -59,7 +60,7 @@ class FaceLabeler:
         except Exception as e:
             self.logger.error(f"Error adding known faces to database: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         finally:
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def label_faces_in_image(self, image_path, media_object_id):
         function_name = 'label_faces_in_image'
@@ -127,7 +128,7 @@ class FaceLabeler:
     def update_identified_faces_in_db(self, identified_faces, media_object_id):
         function_name = 'update_identified_faces_in_db'
         self.logger.info("Updating identified faces in database", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        conn = get_connection()
+        conn = self.db_conn_instance.get_connection()
         try:
             cursor = conn.cursor()
             # Delete existing identified faces for the media object
@@ -176,13 +177,13 @@ class FaceLabeler:
         except Exception as e:
             self.logger.error(f"Error updating identified faces in database: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         finally:
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def is_invalid_face_location(self, media_object_id, face_location):
         function_name = 'is_invalid_face_location'
         top, right, bottom, left = face_location
         self.logger.debug(f"Checking if face location is invalid: {face_location}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        conn = get_connection()
+        conn = self.db_conn_instance.get_connection()
         try:
             cursor = conn.cursor()
             cursor.execute(
@@ -197,4 +198,4 @@ class FaceLabeler:
             self.logger.error(f"Error checking if face location is invalid: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
             return False
         finally:
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)

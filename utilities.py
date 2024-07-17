@@ -12,7 +12,7 @@ import numpy as np
 from glob import glob
 import os
 from settings import *
-from dbconnection import get_connection, return_connection
+from dbconnection import DBConnection
 import hashlib
 import psycopg2
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -34,6 +34,7 @@ class Utilities:
     def __init__(self):
         self.logger = get_logger(__name__)
         self.max_workers = 10
+        self.db_conn_instance = DBConnection.get_instance()
 
     def get_new_files(self, directory):
         function_name = 'get_new_files'
@@ -295,7 +296,7 @@ class Utilities:
     def fetch_potential_duplicates(self, tensor_hash_pil, tensor_hash_cv2):
         function_name = 'fetch_potential_duplicates'
         try:
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cur = conn.cursor()
 
             select_query = """
@@ -311,7 +312,7 @@ class Utilities:
             return []
         finally:
             cur.close()
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def compare_with_potential_duplicates(self, tensor_pil, tensor_cv2, potential_duplicates, mse_threshold):
         function_name = 'compare_with_potential_duplicates'
@@ -523,14 +524,14 @@ class Utilities:
             user = self.get_logged_in_user()
             hostname, ip = self.get_local_ip()
             
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cursor = conn.cursor()
             cursor.execute(query, (orig_name, media_type, user, ip))
             file_id = cursor.fetchone()[0]
             conn.commit()
             cursor.close()
             self.logger.debug(f"Inserted file into database with ID: {file_id}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
             return file_id
         except Exception as e:
             self.logger.error(f"Error inserting file into database: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
@@ -607,7 +608,7 @@ class Utilities:
         WHERE media_object_id = %s
         """
         try:
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cursor = conn.cursor()
 
             if file_create_date is not None:
@@ -622,7 +623,7 @@ class Utilities:
             conn.commit()
             cursor.close()
             self.logger.debug(f"Updated file in database with ID {file_ID}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
         except Exception as e:
             self.logger.error(f"Error updating file in database: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
@@ -651,7 +652,7 @@ class Utilities:
         function_name = 'insert_metadata'
 
         self.logger.debug(f"Inserting metadata for file ID {file_ID}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-        conn = get_connection()
+        conn = self.db_conn_instance.get_connection()
         try:
             with conn.cursor() as cursor:
                 sql_statement = "INSERT INTO tbl_media_metadata (media_object_id, exif_tag, exif_data) VALUES (%s, %s, %s)"
@@ -664,7 +665,7 @@ class Utilities:
         except Exception as e:
             self.logger.error(f"Error inserting metadata for file ID {file_ID}: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         finally:
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def convert_list_to_string(self, li):
         function_name = 'convert_list_to_string'
@@ -676,7 +677,7 @@ class Utilities:
     def insert_image_tensor(self, file, tensor_pil, hash_pil, tensor_cv2, hash_cv2, media_object_id):
         function_name = 'insert_image_tensor'
         try:
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cur = conn.cursor()
 
             required_shape = (50, 50, 3)
@@ -731,7 +732,7 @@ class Utilities:
             raise
         finally:
             cur.close()
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
     
     def generate_movie_hash(self, file_path):
         function_name = 'generate_movie_hash'
@@ -751,7 +752,7 @@ class Utilities:
     def fetch_potential_movie_duplicates(self, movie_hash):
         function_name = 'fetch_potential_movie_duplicates'
         try:
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cur = conn.cursor()
 
             select_query = """
@@ -767,12 +768,12 @@ class Utilities:
             return []
         finally:
             cur.close()
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def insert_movie_hash(self, file_path, movie_hash, media_object_id):
         function_name = 'insert_movie_hash'
         try:
-            conn = get_connection()
+            conn = self.db_conn_instance.get_connection()
             cur = conn.cursor()
 
             insert_query = """
@@ -801,7 +802,7 @@ class Utilities:
             raise
         finally:
             cur.close()
-            return_connection(conn)
+            self.db_conn_instance.return_connection(conn)
 
     def get_movie_metadata_from_file(self, path):
         function_name = 'get_movie_metadata_from_file'
