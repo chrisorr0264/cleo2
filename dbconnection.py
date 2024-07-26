@@ -36,8 +36,8 @@ class DBConnection:
                 port=os.getenv('DB_PORT'),
                 database=os.getenv('DB_NAME')
             )
-            if self.db_pool:
-                logger.info("Connection pool created successfully")
+            #if self.db_pool:
+                #logger.info("Connection pool created successfully")
         except (Exception, psycopg2.DatabaseError) as error:
             logger.error(f"Error while connecting to PostgreSQL: {error}")
 
@@ -46,7 +46,7 @@ class DBConnection:
             if self.db_pool:
                 connection = self.db_pool.getconn()
                 if connection:
-                    logger.debug("Successfully received a connection from the connection pool")
+                    #logger.debug("Successfully received a connection from the connection pool")
                     return connection
         except (Exception, psycopg2.DatabaseError) as error:
             logger.error(f"Error while getting connection: {error}")
@@ -56,7 +56,7 @@ class DBConnection:
         try:
             if self.db_pool:
                 self.db_pool.putconn(connection)
-                logger.debug("Connection returned to the pool successfully")
+                #logger.debug("Connection returned to the pool successfully")
         except (Exception, psycopg2.DatabaseError) as error:
             logger.error(f"Error while returning connection: {error}")
 
@@ -64,6 +64,6 @@ class DBConnection:
         try:
             if self.db_pool:
                 self.db_pool.closeall()
-                logger.info("Connection pool closed successfully")
+                #logger.info("Connection pool closed successfully")
         except (Exception, psycopg2.DatabaseError) as error:
             logger.error(f"Error while closing connection pool: {error}")

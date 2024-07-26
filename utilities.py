@@ -137,63 +137,83 @@ class Utilities:
             self.logger.error(f"Error generating tensor for file {file}: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
             return {str(Path(file)): str(e)}
 
+    def identify_file_extension(self, file):
+        function_name = 'identify_file_extension'
+        with open(file, 'rb') as f:
+            file_header = f.read(10)
+        
+        actual_extension = None
+        # List of possible ftyp sizes and corresponding HEIC/HEIF markers
+        heic_markers = [
+            b'ftypheic', b'ftypmif1', b'ftypmsf1', b'ftypheix', b'ftypheim', b'ftyphevc', b'ftyphe'
+        ]
+        heif_markers = [
+            b'ftyphe', b'ftypmif1', b'ftypmsf1'
+        ]
+        
+        # Check for HEIC markers with different sizes
+        for size in [b'\x00\x00\x00\x18', b'\x00\x00\x00\x1c', b'\x00\x00\x00\x24', b'\x00\x00\x00\x28', b'\x00\x00\x00\x2C', b'\x00\x00\x00 ']:
+            if any(file_header.startswith(size + marker) for marker in heic_markers):
+                actual_extension = '.heic'
+                break
+            if any(file_header.startswith(size + marker) for marker in heif_markers):
+                actual_extension = '.heif'
+                break
+
+        # Other image formats
+        if file_header.startswith(b'PCD_') or file_header.startswith(b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'):
+            actual_extension = '.pcd'
+        elif file_header.startswith(b'\xff\xd8'):
+            actual_extension = '.jpg'
+        elif file_header.startswith(b'\x89PNG'):
+            actual_extension = '.png'
+        elif file_header.startswith(b'GIF87a') or file_header.startswith(b'GIF89a'):
+            actual_extension = '.gif'
+        elif file_header.startswith(b'BM'):
+            actual_extension = '.bmp'
+        elif file_header.startswith(b'\x00\x00\x01\x00'):
+            actual_extension = '.ico'
+        elif file_header.startswith(b'II*\x00') or file_header.startswith(b'MM\x00*'):
+            actual_extension = '.tiff'
+        elif file_header.startswith(b'MThd'):
+            actual_extension = '.mts'
+        elif file_header.startswith(b'\x47'):
+            actual_extension = '.ts'
+        elif file_header.startswith(b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'):
+            actual_extension = None  # Unknown or invalid file type
+        # Other common formats
+        elif file_header.startswith(b'\x25PDF'):
+            actual_extension = '.pdf'
+        elif file_header.startswith(b'\x50\x4B\x03\x04'):
+            actual_extension = '.zip'
+        elif file_header.startswith(b'\x52\x61\x72\x21'):
+            actual_extension = '.rar'
+        elif file_header.startswith(b'\x1F\x8B'):
+            actual_extension = '.gz'
+        elif file_header.startswith(b'\x42\x5A\x68'):
+            actual_extension = '.bz2'
+        elif file_header.startswith(b'PK'):
+            actual_extension = '.docx'
+        elif file_header.startswith(b'\xD0\xCF\x11\xE0'):
+            actual_extension = '.doc'  # Could also be other older Microsoft Office formats like .xls or .ppt
+
+        self.logger.debug(f'The actual extension based on bytes of file {file} should be {actual_extension}', extra={'class_name': self.__class__.__name__, 'function_name': function_name})            
+        return actual_extension
+
+
+
     def check_and_convert_file(self, file):
         function_name = 'check_and_convert_file'
         try:
             self.logger.info(f"Checking file type for: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
-            
-            with open(file, 'rb') as f:
-                file_header = f.read(10)
-            
-            actual_extension = None
 
-            # List of possible ftyp sizes and corresponding HEIC/HEIF markers
-            heic_markers = [
-                b'ftypheic', b'ftypmif1', b'ftypmsf1', b'ftypheix', b'ftypheim', b'ftyphevc', b'ftyphe'
-            ]
-            heif_markers = [
-                b'ftyphe', b'ftypmif1', b'ftypmsf1'
-            ]
-            
-            # Check for HEIC markers with different sizes
-            for size in [b'\x00\x00\x00\x18', b'\x00\x00\x00\x24', b'\x00\x00\x00\x28', b'\x00\x00\x00\x2C', b'\x00\x00\x00 ']:
-                if any(file_header.startswith(size + marker) for marker in heic_markers):
-                    actual_extension = '.heic'
-                    break
-                if any(file_header.startswith(size + marker) for marker in heif_markers):
-                    actual_extension = '.heif'
-                    break
+            # Identify actual file extension
+            actual_extension = self.identify_file_extension(file)
 
-            # Other image formats
-            if file_header.startswith(b'\xff\xd8'):
-                actual_extension = '.jpg'
-            elif file_header.startswith(b'\x89PNG'):
-                actual_extension = '.png'
-            elif file_header.startswith(b'GIF87a') or file_header.startswith(b'GIF89a'):
-                actual_extension = '.gif'
-            elif file_header.startswith(b'BM'):
-                actual_extension = '.bmp'
-            elif file_header.startswith(b'\x00\x00\x01\x00'):
-                actual_extension = '.ico'
-            elif file_header.startswith(b'II*\x00') or file_header.startswith(b'MM\x00*'):
-                actual_extension = '.tiff'
-            # Other common formats
-            elif file_header.startswith(b'\x25PDF'):
-                actual_extension = '.pdf'
-            elif file_header.startswith(b'\x50\x4B\x03\x04'):
-                actual_extension = '.zip'
-            elif file_header.startswith(b'\x52\x61\x72\x21'):
-                actual_extension = '.rar'
-            elif file_header.startswith(b'\x1F\x8B'):
-                actual_extension = '.gz'
-            elif file_header.startswith(b'\x42\x5A\x68'):
-                actual_extension = '.bz2'
-            elif file_header.startswith(b'PK'):
-                actual_extension = '.docx'
-            elif file_header.startswith(b'\xD0\xCF\x11\xE0'):
-                actual_extension = '.doc'  # Could also be other older Microsoft Office formats like .xls or .ppt
+            if actual_extension is None:
+                self.logger.error(f"Unknown or invalid file type for file: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                return file  # Return the file as is, or handle it as needed
 
-            self.logger.detail(f'The actual extension based on bytes of file {file} should be {actual_extension}', extra={'class_name': self.__class__.__name__, 'function_name': function_name})            
             current_extension = os.path.splitext(file)[1].lower()
             
             if actual_extension and current_extension != actual_extension:
@@ -205,6 +225,9 @@ class Utilities:
             if actual_extension == '.heic':
                 self.logger.info(f"Converting HEIC file to JPG: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
                 file = self.convert_heic_to_jpg(file)
+            elif actual_extension == '.pcd':
+                self.logger.info(f"Converting PCD file to JPG: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                file = self.convert_pcd_to_jpg(file)
             elif actual_extension in ['.png', '.gif']:
                 self.logger.info(f"File is a PNG or GIF and will not be converted: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
             elif actual_extension != '.jpg':
@@ -232,6 +255,19 @@ class Utilities:
             return new_file
         except WandException as e:
             self.logger.error(f"Error converting HEIC {file} to JPG: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            raise
+
+    def convert_pcd_to_jpg(self, file):
+        function_name = 'convert_pcd_to_jpg'
+        try:
+            new_file = str(Path(file).with_suffix('.jpg'))
+            subprocess.run(['convert', file, new_file], check=True)
+            self.logger.info(f"Converted PCD {file} to JPG {new_file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})            
+            os.remove(file)
+            self.logger.info(f"Deleted original PCD file: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            return new_file
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error converting PCD {file} to JPG: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
             raise
 
     def convert_to_jpg(self, file):
@@ -744,7 +780,69 @@ class Utilities:
         finally:
             cur.close()
             self.db_conn_instance.return_connection(conn)
-    
+
+    def check_and_convert_movie_file(self, file):
+        function_name = 'check_and_convert_movie_file'
+        try:
+            self.logger.info(f"Checking movie file type for: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+
+            # Identify actual file extension
+            actual_extension = self.identify_file_extension(file)
+
+            current_extension = os.path.splitext(file)[1].lower()
+            
+            if actual_extension and current_extension != actual_extension:
+                new_file = os.path.splitext(file)[0] + actual_extension
+                os.rename(file, new_file)
+                self.logger.info(f"Renamed file to correct extension: {new_file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                file = new_file
+            
+            if actual_extension == '.mts':
+                self.logger.info(f"Converting MTS file to MP4: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                file = self.convert_mts_to_mp4(file)
+            elif actual_extension == '.ts':
+                self.logger.info(f"Converting TS file to MP4: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+                file = self.convert_ts_to_mp4(file)
+            
+            return file
+        except Exception as e:
+            self.logger.error(f"Error checking or converting movie file type for {file}: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            raise
+
+    def convert_mts_to_mp4(self, file):
+        function_name = 'convert_mts_to_mp4'
+        try:
+            new_file = str(Path(file).with_suffix('.mp4'))
+            command = ['ffmpeg', '-i', file, '-c:v', 'copy', '-c:a', 'copy', new_file]
+            subprocess.run(command, check=True)
+            self.logger.info(f"Converted MTS {file} to MP4 {new_file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            
+            # Optionally, remove the original MTS file
+            os.remove(file)
+            self.logger.info(f"Deleted original MTS file: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            
+            return new_file
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error converting MTS {file} to MP4: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            raise
+
+    def convert_ts_to_mp4(self, file):
+        function_name = 'convert_ts_to_mp4'
+        try:
+            new_file = str(Path(file).with_suffix('.mp4'))
+            command = ['ffmpeg', '-i', file, '-c:v', 'copy', '-c:a', 'copy', new_file]
+            subprocess.run(command, check=True)
+            self.logger.info(f"Converted TS {file} to MP4 {new_file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            
+            # Optionally, remove the original TS file
+            os.remove(file)
+            self.logger.info(f"Deleted original TS file: {file}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            
+            return new_file
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error converting TS {file} to MP4: {e}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+            raise
+
     def generate_movie_hash(self, file_path):
         function_name = 'generate_movie_hash'
         self.logger.debug(f"Generating hash for movie file: {file_path}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})

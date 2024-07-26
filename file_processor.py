@@ -1,16 +1,19 @@
 import os
 import time
 from pathlib import Path
+from dotenv import load_dotenv
 from facelabeler import FaceLabeler
 from settings import *
 from utilities import Utilities
 from logger_config import setup_logging, get_logger
 
+# Load environment variables from .env file
+load_dotenv()
+
 class FileProcessor:
     def __init__(self, file):
         setup_logging()
         self.logger = get_logger('main')
-
 
         self.initialize_variables(file)
 
@@ -18,32 +21,30 @@ class FileProcessor:
             self.process_file()
         except Exception as e:
             self.logger.error(f"Error processing file {self.file_to_process}: {e}")
-            self.utils.move_to_error_directory(self.file_to_process)
+            self.util.move_to_error_directory(self.file_to_process)
 
     def process_file(self):
-        
-
         if self.file_type_to_process == 'movie':
             self.process_movie()
         elif self.file_type_to_process == 'image':
             self.process_image()
         else:
-            self.logger.error(f"Unknown file type: {self.file_type_to_process}", extra={'class_name': self.__class__.__name__, 'function_name': 'init'})
+            self.logger.error(f"Unknown file type: {self.file_type_to_process}", extra={'class_name': self.__class__.__name__, 'function_name': 'process_file'})
             raise ValueError(f"Unknown file type: {self.file_type_to_process}")
 
     def initialize_variables(self, file):
         self.file_to_process, self.file_type_to_process = file
 
-        self.image_folder = IMAGE_DIRECTORY
-        self.movies_folder = MOVIES_DIRECTORY
-        self.duplicates_folder = DUPLICATE_DIRECTORY
-        self.mse_threshold = MSE_THRESHOLD
+        self.image_folder = '/mnt/MOM/Images'
+        self.movies_folder = '/mnt/MOM/Movies'
+        self.duplicates_folder = '/mnt/MOM/Duplicates'
+        self.mse_threshold = float(os.getenv('MSE_THRESHOLD', 0.01))
         self.original_file_name = None
         self.original_file_extension = None
         self.original_file_type = None
         self.file_create_date = None
         self.latitude = None
-        self.Longitude = None
+        self.longitude = None
         self.location_class = None
         self.location_type = None
         self.location_name = None
@@ -69,7 +70,6 @@ class FileProcessor:
         self.logger.detail(f"Step 1: Generate tensor took {time.time() - step_start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         
         if isinstance(result, tuple):
-            
             file, tensor_pil, hash_pil, tensor_cv2, hash_cv2 = result
 
             self.original_file_name = os.path.basename(self.file_to_process)  # Store the original filename
@@ -94,7 +94,6 @@ class FileProcessor:
 
                 # Step 5: Process the non-duplicate image
                 self.process_non_duplicate_image(file, tensor_pil, hash_pil, tensor_cv2, hash_cv2)
-
         else:
             self.logger.error(f"Failed to generate tensor for {self.file_to_process}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
@@ -120,7 +119,6 @@ class FileProcessor:
             fn = f"{original_filename}-DUP_OF_{duplicate_of}{Path(file).suffix}"
         else:
             fn = f"{original_filename}-DUP_OF_{duplicate_of} (mse-{mse}){Path(file).suffix}"
-
 
         self.logger.debug(f"File: {fn} is a duplicate and is moved to the duplicates folder.", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
         updated_file = os.path.join(self.duplicates_folder, fn)
@@ -229,7 +227,6 @@ class FileProcessor:
         self.logger.detail(f"Step 1: Generate movie hash took {time.time() - step_start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
         if isinstance(results, tuple):
-
             file, movie_hash = results
 
             self.original_file_name = os.path.basename(self.file_to_process)  # Store the original filename
@@ -247,13 +244,12 @@ class FileProcessor:
             else:
                 self.logger.debug(f"No duplicate found for {file}...processing...", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
-                # Step 4: Process the non-duplicate image
+                # Step 4: Process the non-duplicate movie
                 self.process_non_duplicate_movie(file, movie_hash)
-
         else:
             self.logger.error(f"Failed to generate movie hash for {self.file_to_process}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
-        self.logger.detail(f"Total duration of process_image: {time.time() - start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+        self.logger.detail(f"Total duration of process_movie: {time.time() - start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
     def process_non_duplicate_movie(self, file, movie_hash):
         function_name = 'process_non_duplicate_movie'
@@ -268,7 +264,7 @@ class FileProcessor:
         self.file_create_date = self.util.get_file_create_date_for_movie(file, metadata)
         self.logger.detail(f"Step 2: Get file create date took {time.time() - step_start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
-        #  Get location data details from metadata
+        # Get location data details from metadata
         step_start_time = time.time()
         (
             self.latitude,
@@ -329,8 +325,103 @@ class FileProcessor:
         if move_file_result != 'Success':
             self.logger.error(f"Failed to move file {self.new_file_name} to {updated_file}: {move_file_result}", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
 
-
         # Insert the movie hash into the hash table
         step_start_time = time.time()
         self.util.insert_movie_hash(updated_file, movie_hash, self.media_object_id)
         self.logger.detail(f"Insert the movie hash into the hash table took {time.time() - step_start_time:.2f} seconds", extra={'class_name': self.__class__.__name__, 'function_name': function_name})
+
+def process_jpg_files_in_directory(directory_path):
+    # Define the directory and file extension
+    directory = Path(directory_path)
+
+    # Verify the directory exists
+    if not directory.exists():
+        print(f"Directory does not exist: {directory_path}")
+        return
+
+    print(f"Looking for .jpg and .JPG files in directory: {directory_path}")
+    jpg_files = list(directory.glob("*.jpg")) + list(directory.glob("*.JPG"))  # Match all .avi and .AVI files
+
+    # Check if there are any .avi or .AVI files
+    if not jpg_files:
+        print(f"No .jpg or .JPG files found in directory: {directory_path}")
+        return
+
+    # Iterate over each .jpg or .JPG file
+    for jpg_file in jpg_files:
+        print(f"Processing file: {jpg_file}")
+        processor = FileProcessor((str(jpg_file), 'image'))
+
+def process_avi_files_in_directory(directory_path):
+    # Define the directory and file extension
+    directory = Path(directory_path)
+
+    # Verify the directory exists
+    if not directory.exists():
+        print(f"Directory does not exist: {directory_path}")
+        return
+
+    print(f"Looking for .avi and .AVI files in directory: {directory_path}")
+    avi_files = list(directory.glob("*.avi")) + list(directory.glob("*.AVI"))  # Match all .avi and .AVI files
+
+    # Check if there are any .avi or .AVI files
+    if not avi_files:
+        print(f"No .avi or .AVI files found in directory: {directory_path}")
+        return
+
+    # Iterate over each .jpg or .JPG file
+    for avi_file in avi_files:
+        print(f"Processing file: {avi_file}")
+        processor = FileProcessor((str(avi_file), 'movie'))
+
+def process_bmp_files_in_directory(directory_path):
+    # Define the directory and file extension
+    directory = Path(directory_path)
+
+    # Verify the directory exists
+    if not directory.exists():
+        print(f"Directory does not exist: {directory_path}")
+        return
+
+    print(f"Looking for .bmp and .BMP files in directory: {directory_path}")
+    bmp_files = list(directory.glob("*.bmp")) + list(directory.glob("*.BMP"))  # Match all .avi and .AVI files
+
+    # Check if there are any .avi or .AVI files
+    if not bmp_files:
+        print(f"No .bmp or .BMP files found in directory: {directory_path}")
+        return
+
+    # Iterate over each .jpg or .JPG file
+    for bmp_file in bmp_files:
+        print(f"Processing file: {bmp_file}")
+        processor = FileProcessor((str(bmp_file), 'image'))
+
+def process_mts_files_in_directory(directory_path):
+    # Define the directory and file extension
+    directory = Path(directory_path)
+
+    # Verify the directory exists
+    if not directory.exists():
+        print(f"Directory does not exist: {directory_path}")
+        return
+
+    print(f"Looking for .mts and .MTS files in directory: {directory_path}")
+    mts_files = list(directory.glob("*.mts")) + list(directory.glob("*.MTS"))  # Match all .avi and .AVI files
+
+    # Check if there are any .mts or .MTS files
+    if not mts_files:
+        print(f"No .mts or .MTS files found in directory: {directory_path}")
+        return
+
+    # Iterate over each .jpg or .JPG file
+    for mts_file in mts_files:
+        print(f"Processing file: {mts_file}")
+        processor = FileProcessor((str(mts_file), 'movie'))
+
+# Example usage
+if __name__ == "__main__":
+    directory_path = "/mnt/MOM/New/"  # Change this to your directory path
+    #process_jpg_files_in_directory(directory_path)
+    #process_avi_files_in_directory(directory_path)
+    #process_bmp_files_in_directory(directory_path)
+    process_mts_files_in_directory(directory_path)
